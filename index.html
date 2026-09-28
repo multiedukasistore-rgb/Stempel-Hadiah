@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>BRILink PJSP Reward - Catatan Stempel Transaksi</title>
+  
+  <!-- Font & Icons CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Library Pendukung -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+
+  <!-- Dukungan Native Google Apps Script -->
+  <?!= include('Style'); ?>
+
+  <!-- Loader Sinkronisasi untuk GitHub Pages / Web Hosting -->
+  <script>
+    (function() {
+      if (!document.querySelector('style[data-source="Style.html"]')) {
+        fetch('Style.html')
+          .then(function(res) {
+            if (!res.ok) throw new Error('Status: ' + res.status);
+            return res.text();
+          })
+          .then(function(html) {
+            var cssContent = html.replace(/<\/?style[^>]*>/gi, '');
+            var styleEl = document.createElement('style');
+            styleEl.setAttribute('data-source', 'Style.html');
+            styleEl.textContent = cssContent;
+            document.head.appendChild(styleEl);
+          })
+          .catch(function(err) {
+            console.warn('Sync loader Style.html notice:', err);
+          });
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <div class="app-container">
+    <header class="top-nav">
+      <div class="brand-badge">
+        <span class="brand-logo-pill">BRILink</span>
+        <div class="brand-text-block">
+          <span class="brand-title-main">PJSP REWARD</span>
+          <span class="brand-title-sub">Catatan Stempel Transaksi</span>
+        </div>
+      </div>
+      <button class="btn-mode-toggle" id="btnToggleMode" onclick="toggleMode()">
+        <i class="fa-solid fa-user-shield"></i> <span id="btnModeText">Mode Kasir</span>
+      </button>
+    </header>
+
+    <main id="viewCustomer" style="display:block;">
+      <section class="search-card-wrapper">
+        <div class="search-label-text">
+          <i class="fa-solid fa-magnifying-glass"></i> Cek Stempel & Hadiah Pelanggan:
+        </div>
+        <div class="search-input-group">
+          <input type="text" class="search-input-field" id="customerSearchInput" placeholder="Masukkan Nama Anda (Contoh: Agus)" onkeydown="if(event.key==='Enter') searchCustomerByName()">
+          <button class="btn-action-search" onclick="searchCustomerByName()">
+            <span>➔ Buka</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="customerEmptyState" class="customer-empty-box">
+        <div class="customer-empty-icon"><i class="fa-solid fa-book-bookmark"></i></div>
+        <div class="customer-empty-title">Cek Catatan Stempel Anda</div>
+        <div class="customer-empty-desc">
+          Ketik nama Anda pada kolom pencarian di atas, lalu tekan tombol <strong>➔ Buka</strong> untuk melihat jumlah kartu dan catatan stempel transaksi Anda.
+        </div>
+      </section>
+
+      <section id="customerCardSection" style="display:none;">
+        <div class="customer-main-card">
+          <i class="fa-solid fa-sparkle sparkle-icon-left"></i>
+          <i class="fa-solid fa-sparkle sparkle-icon-right"></i>
+
+          <div class="catatan-transaksi-head">
+            <div class="catatan-transaksi-title">CATATAN TRANSAKSI</div>
+            <div class="target-hadiah-pill">
+              ✦ Target 20 Stempel untuk Hadiah Gratis! ✦
+            </div>
+          </div>
+
+          <div class="cust-info-flex-row">
+            <div class="jar-avatar-container">
+              <i class="fa-solid fa-jar"></i>
+              <span class="jar-label-tag">Rewards</span>
+            </div>
+            
+            <div class="customer-meta-table">
+              <div class="meta-line-item">
+                <i class="fa-solid fa-heart"></i>
+                <span class="meta-label-col">Nama Pelanggan</span>
+                <span class="meta-sep-col">:</span>
+                <span class="meta-val-col" id="custProfileNama">-</span>
+              </div>
+              <div class="meta-line-item">
+                <i class="fa-solid fa-heart"></i>
+                <span class="meta-label-col">ID Pelanggan</span>
+                <span class="meta-sep-col">:</span>
+                <span class="meta-val-col" id="custProfileId">-</span>
+              </div>
+              <div class="meta-line-item">
+                <i class="fa-solid fa-heart"></i>
+                <span class="meta-label-col">Jumlah Kartu</span>
+                <span class="meta-sep-col">:</span>
+                <span class="meta-val-col" id="custProfileKartu">-</span>
+              </div>
+              <div class="meta-line-item">
+                <i class="fa-solid fa-heart"></i>
+                <span class="meta-label-col">Target Kupon</span>
+                <span class="meta-sep-col">:</span>
+                <span class="meta-val-col">20 Stempel Transaksi</span>
+              </div>
+              <div class="meta-line-item">
+                <i class="fa-solid fa-heart"></i>
+                <span class="meta-label-col">Kupon Selesai</span>
+                <span class="meta-sep-col">:</span>
+                <span class="meta-val-col" id="custProfileKupon">-</span>
+              </div>
+              <div class="meta-line-item">
+                <i class="fa-solid fa-ticket" style="color:var(--accent-orange);"></i>
+                <span class="meta-label-col">Tiket Undian</span>
+                <span class="meta-sep-col">:</span>
+                <span class="meta-val-col" id="custProfileTiketCount" style="color:#b45309;">0 Tiket Resmi</span>
+              </div>
+            </div>
+
+            <div class="piggy-quote-card">
+              <i class="fa-solid fa-piggy-bank"></i>
+              <div class="piggy-quote-card-text">
+                Semangat transaksi! Sedikit demi sedikit, kupon penuh dapat hadiah! 💙
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:left;">
+            <div class="progress-dashed-badge" id="custBadgeProgress">
+              Progres: 0 dari 20 Kotak Lengkap
+            </div>
+          </div>
+        </div>
+
+        <div class="stamps-display-card">
+          <div class="stamps-display-header">
+            <div class="tiap-kotak-badge">
+              <i class="fa-solid fa-inbox"></i> TIAP KOTAK = 1 TRANSAKSI
+            </div>
+            <div class="stamps-counter-label" id="custStampsRatioText">
+              0 / 20 Terstempel
+            </div>
+          </div>
+          <div class="stamps-grid-20" id="customerStampsGrid"></div>
+        </div>
+
+        <div class="milestone-section-card">
+          <div class="milestone-badge-head">
+            <i class="fa-solid fa-flag"></i> MILESTONE
+          </div>
+          <div class="milestone-cards-row">
+            <div class="milestone-step-card" id="milestoneStep1">
+              <div class="milestone-step-head">5 KOTAK</div>
+              <div class="milestone-step-sub">5 Transaksi</div>
+              <div class="milestone-step-msg">Bagus! 💙</div>
+            </div>
+            <div class="milestone-step-card" id="milestoneStep2">
+              <div class="milestone-step-head">10 KOTAK</div>
+              <div class="milestone-step-sub">10 Transaksi</div>
+              <div class="milestone-step-msg">Keren! 🌟</div>
+            </div>
+            <div class="milestone-step-card" id="milestoneStep3">
+              <div class="milestone-step-head">15 KOTAK</div>
+              <div class="milestone-step-sub">15 Transaksi</div>
+              <div class="milestone-step-msg">Hebat! 🎆</div>
+            </div>
+            <div class="milestone-step-card" id="milestoneStep4">
+              <div class="milestone-step-head">20 KOTAK</div>
+              <div class="milestone-step-sub">+1 Kartu & Reset</div>
+              <div class="milestone-step-msg">Yeay! 🏆</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="raffle-widget-card" id="customerRaffleSection">
+          <div class="raffle-widget-head">
+            <div class="raffle-title-pill">
+              <i class="fa-solid fa-ticket"></i> TIKET UNDIAN BERHADIAH (SETIAP 5 KARTU)
+            </div>
+            <div id="raffleNextProgressText" style="font-size:11px; font-weight:800; color:#b45309;">
+              0 / 5 Kartu menuju tiket berikutnya
+            </div>
+          </div>
+          <div class="raffle-progress-bar-bg">
+            <div class="raffle-progress-bar-fill" id="raffleBarFill" style="width:0%;"></div>
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-bottom:8px; font-weight:600;">
+            Setiap kali berhasil mengumpulkan 5 kartu stempel, Anda otomatis mendapatkan 1 Nomor Undian Berhadiah dari Agen BRILink PJSP!
+          </div>
+          <div class="raffle-ticket-badge-list" id="customerRaffleBadges">
+            <span style="font-size:11px; color:#b45309; font-style:italic;">Belum memiliki tiket undian. Kumpulkan 5 kartu untuk tiket pertamamu!</span>
+          </div>
+        </div>
+
+        <div class="reminder-dashed-banner">
+          <i class="fa-solid fa-heart" style="color:#0284c7;"></i>
+          <span>Ingat: Rajin transaksi hari ini, hadiah & tiket undian menanti!</span>
+          <i class="fa-solid fa-sparkles" style="color:var(--accent-orange);"></i>
+        </div>
+
+        <div class="cust-bottom-grid">
+          <div class="qr-card-panel">
+            <div class="qr-card-head">QR ID Pelanggan</div>
+            <div class="qr-code-box-holder" id="customerQrContainer"></div>
+            <button class="btn-simpan-qr" onclick="downloadCustomerQrImage()">
+              <i class="fa-solid fa-download"></i> Simpan QR
+            </button>
+          </div>
+
+          <div class="hadiah-selection-panel">
+            <div class="hadiah-selection-head">
+              <i class="fa-solid fa-gift" style="color:#f59e0b;"></i> Pilihan Hadiah 20 Stempel
+            </div>
+            <div class="hadiah-selection-sub">
+              Kupon penuh berhak memilih salah satu hadiah di bawah ini di meja kasir:
+            </div>
+            <div class="hadiah-items-row" id="customerHadiahListRow">
+              <div class="hadiah-single-box">
+                <div class="hadiah-single-name">Minyak Goreng 1L</div>
+                <span class="badge-stock-pill" id="stockBadge1">Sisa: 18</span>
+              </div>
+              <div class="hadiah-single-box">
+                <div class="hadiah-single-name">Gula Pasir 1kg</div>
+                <span class="badge-stock-pill" id="stockBadge2">Sisa: 22</span>
+              </div>
+              <div class="hadiah-single-box">
+                <div class="hadiah-single-name">Gratis Biaya Admin 3x</div>
+                <span class="badge-stock-pill" id="stockBadge3">Sisa: 48</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <main id="viewAdmin" style="display:none;">
+      <section class="admin-header-card">
+        <div class="admin-cashier-profile">
+          <div class="admin-cashier-avatar">
+            <i class="fa-solid fa-user-check"></i>
+          </div>
+          <div>
+            <div class="admin-cashier-sub">Kasir Bertugas</div>
+            <div class="admin-cashier-name" id="adminActiveCashierName">Admin</div>
+          </div>
+        </div>
+        <div class="admin-header-actions">
+          <button class="btn btn-outline btn-sm" onclick="promptGantiShift()">
+            <i class="fa-solid fa-rotate"></i> Ganti Shift
+          </button>
+          <button class="btn btn-red btn-sm" onclick="exitAdminMode()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+          </button>
+        </div>
+      </section>
+
+      <nav class="admin-tabs-nav">
+        <button class="admin-tab-btn active" id="tabBtn1" onclick="switchAdminTab(1)">
+          <i class="fa-solid fa-stamp"></i> Transaksi Stempel
+        </button>
+        <button class="admin-tab-btn" id="tabBtn2" onclick="switchAdminTab(2)">
+          <i class="fa-solid fa-gifts"></i> Stok Hadiah
+        </button>
+        <button class="admin-tab-btn" id="tabBtn3" onclick="switchAdminTab(3)">
+          <i class="fa-solid fa-clock-rotate-left"></i> Riwayat Klaim
+        </button>
+        <button class="admin-tab-btn" id="tabBtn4" onclick="switchAdminTab(4)">
+          <i class="fa-solid fa-stopwatch"></i> Waktu Stempel Real-Time
+        </button>
+      </nav>
+
+      <!-- TAB 1: Transaksi Stempel -->
+      <div id="adminTabContent1" style="display:block;">
+        <div id="cashierActiveDeskSection" class="cashier-desk-panel" style="display:none;">
+          <div class="cashier-desk-head">
+            <div class="cashier-cust-pill">
+              <div class="cashier-cust-avatar" id="deskCustAvatarLetter">M</div>
+              <div>
+                <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Sedang Distempel:</div>
+                <div style="font-size:15px; font-weight:800; color:var(--primary);" id="deskCustName">-</div>
+                <div style="font-size:11px; color:var(--text-muted); display:flex; gap:6px; align-items:center;">
+                  <span id="deskCustId">-</span> • <span class="badge-card-count" id="deskCustCardsBadge">0 Kartu</span>
+                </div>
+              </div>
+            </div>
+            <div class="cashier-controls-group">
+              <button class="btn btn-blue btn-md" onclick="applyDeskStampChange(1)">
+                <i class="fa-solid fa-stamp"></i> Cap Stempel (+1)
+              </button>
+              <button class="btn btn-outline btn-md" onclick="applyDeskStampChange(-1)" title="Batalkan 1 Stempel">
+                -1
+              </button>
+              <button class="btn btn-outline btn-md" onclick="closeDeskStamp()" title="Tutup Meja">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px;">
+            <span><i class="fa-solid fa-square-check"></i> Progres Kupon 20 Kotak:</span>
+            <span id="deskStampCountText">0 / 20 Terstempel</span>
+          </div>
+
+          <div class="stamps-grid-20" id="deskStampsGrid20"></div>
+        </div>
+
+        <div class="admin-toolbar-row">
+          <div class="admin-search-wrapper">
+            <input type="text" class="admin-search-input" id="adminSearchKeyword" placeholder="Cari Nama Pelanggan (Contoh: mar / deb / gea)..." oninput="handleAdminSearchInput(event)" onkeydown="if(event.key==='Enter') triggerFastSelectCustomer()">
+            <div class="admin-search-suggestions" id="adminSearchSuggestions"></div>
+          </div>
+          <button class="btn btn-blue btn-md" onclick="triggerFastSelectCustomer()" title="Cari Pelanggan">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+          <button class="btn btn-blue btn-md" onclick="openQrScannerModal()">
+            <i class="fa-solid fa-camera"></i> Scan QR
+          </button>
+          <button class="btn btn-outline btn-md" onclick="openModalTambahPelanggan()">
+            <i class="fa-solid fa-user-plus"></i> Baru
+          </button>
+        </div>
+
+        <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px;">
+          Pilih Nama Pelanggan di bawah untuk mulai menstempel:
+        </div>
+
+        <div class="customers-cards-grid" id="adminCustomersCardsContainer"></div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted);" id="paginationInfoLabel">Hal 1 / 1 (69 Pelanggan)</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-outline btn-sm" onclick="changeAdminPage(-1)">Prev</button>
+            <button class="btn btn-outline btn-sm" onclick="changeAdminPage(1)">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Stok Hadiah -->
+      <div id="adminTabContent2" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:800; color:var(--primary); font-size:14px;"><i class="fa-solid fa-gifts"></i> Katalog Hadiah Pelanggan</div>
+          <button class="btn btn-blue btn-sm" onclick="openModalTambahHadiah()"><i class="fa-solid fa-plus"></i> Tambah Hadiah</button>
+        </div>
+        <div class="table-container">
+          <table class="custom-data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Gambar Hadiah</th>
+                <th>Total Stok</th>
+                <th>Sisa Stok</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tableBodyHadiah"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: Riwayat Klaim -->
+      <div id="adminTabContent3" style="display:none;">
+        <div style="font-weight:800; color:var(--primary); font-size:14px; margin-bottom:12px;"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Penukaran Hadiah</div>
+        <div class="table-container">
+          <table class="custom-data-table">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>ID Pelanggan</th>
+                <th>Nama Pelanggan</th>
+                <th>Hadiah Diklaim</th>
+                <th>Kupon Ke</th>
+                <th>Petugas</th>
+              </tr>
+            </thead>
+            <tbody id="tableBodyKlaim"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: Waktu Stempel Real-Time -->
+      <div id="adminTabContent4" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:800; color:var(--primary); font-size:14px;"><i class="fa-solid fa-stopwatch"></i> Waktu Stempel Real-Time</div>
+          <button class="btn btn-outline btn-sm" onclick="loadRealtimeStampLogs()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Log</button>
+        </div>
+        <div class="table-container">
+          <table class="custom-data-table">
+            <thead>
+              <tr>
+                <th>Waktu Real-Time</th>
+                <th>ID Pelanggan</th>
+                <th>Nama Pelanggan</th>
+                <th>Aksi</th>
+                <th>Stempel</th>
+                <th>Petugas</th>
+                <th>Keterangan</th>
+              </tr>
+            </thead>
+            <tbody id="tableBodyWaktuStempel"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: Scanner Kamera Universal -->
+  <div class="modal-backdrop-wrap" id="modalQrScanner" style="display:none;">
+    <div class="modal-box-panel" style="max-width:420px; text-align:center; padding:18px;">
+      <div class="modal-header-row" style="margin-bottom:8px;">
+        <div class="modal-header-title">
+          <i class="fa-solid fa-camera"></i> Pindai QR Pelanggan
+        </div>
+        <button class="btn-modal-close" onclick="closeQrScannerModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="scanner-camera-viewport">
+        <div class="scanner-top-bar">
+          <button class="scanner-top-btn" id="btnToggleTorch" onclick="toggleFlashlight()" title="Senter / Flash">
+            <i class="fa-solid fa-bolt"></i>
+          </button>
+          <button class="scanner-top-btn" onclick="restartLiveCamera()" title="Putar Kamera">
+            <i class="fa-solid fa-camera-rotate"></i>
+          </button>
+        </div>
+
+        <video id="scannerLiveVideo" autoplay playsinline webkit-playsinline muted></video>
+        <canvas id="scannerHiddenCanvas" style="display:none;"></canvas>
+
+        <div class="scanner-box-target">
+          <div class="scanner-corner corner-tl"></div>
+          <div class="scanner-corner corner-tr"></div>
+          <div class="scanner-corner corner-bl"></div>
+          <div class="scanner-corner corner-br"></div>
+          <div class="scanner-laser-line"></div>
+          <div class="scanner-instruction">Letakkan kode dalam bingkai</div>
+        </div>
+      </div>
+
+      <div class="scanner-bottom-controls">
+        <div class="scanner-mode-tab">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>Kode QR</span>
+        </div>
+        <button class="btn-native-shutter" onclick="triggerNativeCameraDirectly()" title="Buka Kamera Perangkat">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <button class="btn-gallery-pick" onclick="triggerNativeCameraDirectly()" title="Pilih Foto QR dari Galeri">
+          <i class="fa-solid fa-images"></i>
+        </button>
+      </div>
+
+      <input type="file" id="nativeQrFileInput" accept="image/*" capture="environment" style="display:none;" onchange="handleNativeQrCapture(event)">
+    </div>
+  </div>
+
+  <!-- MODAL: Login Admin -->
+  <div class="modal-backdrop-wrap" id="modalAuthKasir" style="display:none;">
+    <div class="modal-box-panel" style="max-width:340px;">
+      <div class="modal-header-row">
+        <div class="modal-header-title"><i class="fa-solid fa-lock"></i> Masuk Mode Kasir</div>
+        <button class="btn-modal-close" onclick="closeAuthModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Hak Akses:</label>
+        <div style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:var(--radius-pill); padding:8px 14px; font-size:13px; font-weight:800; color:var(--primary); display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-shield-halved"></i> Admin
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">PIN Admin:</label>
+        <input type="password" id="inputAdminPin" class="search-input-field" placeholder="Masukkan PIN" style="width:100%; border-radius:var(--radius-pill);" onkeydown="if(event.key==='Enter') submitAdminLogin()">
+      </div>
+      <button class="btn btn-blue btn-md" style="width:100%;" onclick="submitAdminLogin()">
+        Masuk Portal
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: Tambah Pelanggan Baru -->
+  <div class="modal-backdrop-wrap" id="modalTambahPelanggan" style="display:none;">
+    <div class="modal-box-panel" style="max-width:380px;">
+      <div class="modal-header-row">
+        <div class="modal-header-title"><i class="fa-solid fa-user-plus"></i> Daftarkan Pelanggan Baru</div>
+        <button class="btn-modal-close" onclick="closeModalTambahPelanggan()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">Nama Lengkap Pelanggan:</label>
+        <input type="text" id="regCustNama" class="search-input-field" placeholder="Masukkan nama pelanggan baru..." style="width:100%; border-radius:var(--radius-md);" onkeydown="if(event.key==='Enter') submitRegisterCustomer()">
+      </div>
+      <button class="btn btn-blue btn-md" style="width:100%;" onclick="submitRegisterCustomer()">
+        Daftarkan Pelanggan
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: Form Hadiah -->
+  <div class="modal-backdrop-wrap" id="modalFormHadiah" style="display:none;">
+    <div class="modal-box-panel" style="max-width:400px;">
+      <div class="modal-header-row">
+        <div class="modal-header-title" id="modalFormHadiahTitle">
+          <i class="fa-solid fa-gift"></i> Edit Hadiah
+        </div>
+        <button class="btn-modal-close" onclick="closeModalFormHadiah()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="hidden" id="formHadiahId">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Nama Hadiah:</label>
+        <input type="text" id="formHadiahNama" class="search-input-field" placeholder="Contoh: Minyak Goreng 1L" style="width:100%; border-radius:var(--radius-md);">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Unggah Gambar Hadiah:</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img id="formHadiahImgPreview" src="" class="reward-img-thumbnail" style="width:52px; height:52px; object-fit:cover; border-radius:8px; display:none; border:1.5px solid #cbd5e1; flex-shrink:0;">
+          <input type="file" id="formHadiahFileInput" accept="image/*" class="search-input-field" style="width:100%; border-radius:var(--radius-md); padding:8px 12px; height:auto; font-size:12px;" onchange="handleRewardImageUpload(event)">
+        </div>
+        <input type="hidden" id="formHadiahImg">
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div style="flex:1;">
+          <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Total Stok:</label>
+          <input type="number" id="formHadiahTotal" class="search-input-field" min="0" style="width:100%; border-radius:var(--radius-md);">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Sisa Stok:</label>
+          <input type="number" id="formHadiahSisa" class="search-input-field" min="0" style="width:100%; border-radius:var(--radius-md);">
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Status:</label>
+        <select id="formHadiahStatus" class="search-input-field" style="width:100%; border-radius:var(--radius-md);">
+          <option value="Aktif">Aktif</option>
+          <option value="Nonaktif">Nonaktif</option>
+        </select>
+      </div>
+      <button class="btn btn-blue btn-md" style="width:100%;" onclick="submitFormHadiah()">
+        Simpan Hadiah
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: Konfirmasi Hapus Hadiah -->
+  <div class="modal-backdrop-wrap" id="modalConfirmHapusHadiah" style="display:none;">
+    <div class="modal-box-panel" style="max-width:360px; text-align:center;">
+      <div style="font-size:40px; color:var(--accent-red); margin-bottom:8px;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div style="font-size:16px; font-weight:800; color:var(--text-main); margin-bottom:6px;">Hapus Hadiah?</div>
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;" id="confirmHapusHadiahText">
+        Apakah Anda yakin ingin menghapus hadiah ini dari katalog?
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="btn btn-outline btn-md" style="flex:1;" onclick="closeModalConfirmHapus()">
+          Batal
+        </button>
+        <button class="btn btn-red btn-md" style="flex:1;" onclick="executeDeleteHadiah()">
+          <i class="fa-solid fa-trash"></i> Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Tiket Undian -->
+  <div class="modal-backdrop-wrap" id="modalRaffleAward" style="display:none;">
+    <div class="modal-box-panel" style="max-width:380px; text-align:center; background:linear-gradient(180deg, #ffffff 0%, #fffbeb 100%); border:2px solid #f59e0b;">
+      <div style="font-size:48px; color:#f59e0b; margin-bottom:6px;"><i class="fa-solid fa-award"></i></div>
+      <div style="font-size:18px; font-weight:900; color:#b45309; margin-bottom:4px;">SELAMAT! DAPAT TIKET UNDIAN</div>
+      <div style="font-size:12px; color:#78350f; margin-bottom:14px;" id="modalRaffleSubText">
+        Pelanggan telah berhasil mengumpulkan kelipatan 5 Kartu Lengkap!
+      </div>
+      <div style="background:#ffffff; border:2px dashed #f59e0b; border-radius:12px; padding:12px; margin-bottom:16px;">
+        <div style="font-size:11px; font-weight:700; color:#b45309;">NOMOR UNDIAN RESMI ANDA:</div>
+        <div style="font-size:24px; font-weight:900; color:#1d4d80; letter-spacing:1px; margin-top:4px;" id="modalRaffleNumberText">
+          UND-0000
+        </div>
+      </div>
+      <button class="btn btn-gold btn-md" style="width:100%;" onclick="closeRaffleModal()">
+        Simpan Kupon Undian
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Box Notifikasi -->
+  <div class="toast-box-notification" id="appToast" style="display:none;">
+    <i class="fa-solid fa-circle-info" id="appToastIcon"></i>
+    <span id="appToastMessage">Notifikasi</span>
+  </div>
+
+  <!-- Dukungan Native Google Apps Script -->
+  <?!= include('js'); ?>
+
+  <!-- Loader Sinkronisasi untuk GitHub Pages / Web Hosting -->
+  <script>
+    (function() {
+      if (typeof MASTER_PELANGGAN_LIST === 'undefined') {
+        fetch('js.html')
+          .then(function(res) {
+            if (!res.ok) throw new Error('Status: ' + res.status);
+            return res.text();
+          })
+          .then(function(html) {
+            var jsContent = html.replace(/<\/?script[^>]*>/gi, '');
+            var scriptEl = document.createElement('script');
+            scriptEl.textContent = jsContent;
+            document.body.appendChild(scriptEl);
+          })
+          .catch(function(err) {
+            console.warn('Sync loader js.html notice:', err);
+          });
+      }
+    })();
+  </script>
+</body>
+</html>

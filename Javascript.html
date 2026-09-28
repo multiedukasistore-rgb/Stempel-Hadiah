@@ -1,0 +1,1201 @@
+// URL Deployment Web App Google Apps Script
+// GANTI nilai di bawah ini dengan URL Web App Apps Script Anda!
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_DEPLOYMENT_ID/exec';
+
+// Helper Pemanggil API Google Apps Script (CORS-Ready)
+function callBackend(action, data, callback) {
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf('YOUR_DEPLOYMENT_ID') !== -1) {
+    console.warn("SCRIPT_URL belum diatur. Menggunakan data lokal.");
+    if (callback) callback({ success: false, message: 'SCRIPT_URL belum diatur' });
+    return;
+  }
+
+  var payload = Object.assign({ action: action }, data || {});
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(json) {
+    if (callback) callback(json);
+  })
+  .catch(function(err) {
+    console.warn("Mencoba fallback GET:", err);
+    var query = 'action=' + encodeURIComponent(action) + '&' + Object.keys(data || {}).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
+    }).join('&');
+
+    fetch(SCRIPT_URL + '?' + query)
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (callback) callback(j); })
+      .catch(function(e) {
+        console.error("Gagal koneksi backend:", e);
+        if (callback) callback({ success: false, message: e.toString() });
+      });
+  });
+}
+
+var MASTER_PELANGGAN_LIST = [
+  { id: 'CUST-0001', nama: 'ISROKMI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0002', nama: 'MAISIRAN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0003', nama: 'VERA YULISTIANI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0004', nama: 'AL-FADILLAH', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0005', nama: 'RIKA RAHMI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0006', nama: 'ROSLAENI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0007', nama: 'M. ANDREAWAN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0008', nama: 'PUJI HANDAYANI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0009', nama: 'MUHARIST', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0010', nama: 'KATIRAH', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0011', nama: 'PANCEN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0012', nama: 'SUTIYEM G. PUTRI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0013', nama: 'ANIS ROHAYATI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0014', nama: 'NURKOMAROH', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0015', nama: 'ADAM RIZAL', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0016', nama: 'SAYUTI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0017', nama: 'NUR MISWANTI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0018', nama: 'DEWI APRIYANTI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0019', nama: 'PURMINI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0020', nama: 'MASFUAH G. PUTRI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0021', nama: 'NURILA', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0022', nama: 'NIRATIKA', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0023', nama: 'AMIRUL AMIN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0024', nama: 'SADIMIN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0025', nama: 'RITA SEMEDANG', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0026', nama: 'SELLY', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0027', nama: 'NARIAH', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0028', nama: 'LUSI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0029', nama: 'USMAN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0030', nama: 'PRAWITO', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0031', nama: 'YASIN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0032', nama: 'RUSLAN', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0033', nama: 'MARTINI', jumlahKartu: 1, stempelAktif: 0 },
+  { id: 'CUST-0034', nama: 'NURAINI', jumlahKartu: 3, stempelAktif: 0 },
+  { id: 'CUST-0035', nama: 'SUPRIHATIN', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0036', nama: 'MUSTARIDI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0037', nama: 'SARMADI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0038', nama: 'YANAH', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0039', nama: 'JULIUS', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0040', nama: 'INDASAH', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0041', nama: 'RATIH DEVI SARI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0042', nama: 'SITI ROHMAH', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0043', nama: 'ENDANG', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0044', nama: 'RIBAI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0045', nama: 'YULIZAR', jumlahKartu: 3, stempelAktif: 0 },
+  { id: 'CUST-0046', nama: 'SRI SULASTRI', jumlahKartu: 4, stempelAktif: 0 },
+  { id: 'CUST-0047', nama: 'MUSNAWIRA', jumlahKartu: 4, stempelAktif: 0 },
+  { id: 'CUST-0048', nama: 'MARSAM', jumlahKartu: 4, stempelAktif: 0 },
+  { id: 'CUST-0049', nama: 'HENDRAWATI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0050', nama: 'BU HADI SP3', jumlahKartu: 3, stempelAktif: 0 },
+  { id: 'CUST-0051', nama: 'NURJUM', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0052', nama: 'RENITA', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0053', nama: 'SRI PUTRI AINI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0054', nama: 'BAJURI SP3', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0055', nama: 'AMIRUDDIN', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0056', nama: 'SAPIRAN', jumlahKartu: 3, stempelAktif: 0 },
+  { id: 'CUST-0057', nama: 'DEBI', jumlahKartu: 5, stempelAktif: 0 },
+  { id: 'CUST-0058', nama: 'JALINA', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0059', nama: 'DEWI BAYNANI', jumlahKartu: 3, stempelAktif: 0 },
+  { id: 'CUST-0060', nama: 'SOFYAN', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0061', nama: 'NURSANAH', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0062', nama: 'NURJANAH', jumlahKartu: 3, stempelAktif: 0 },
+  { id: 'CUST-0063', nama: 'L.SAUNITA N', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0064', nama: 'SRI UTAMI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0065', nama: 'SRI INDARTI', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0066', nama: 'RAHMA GUSTIANUR S', jumlahKartu: 2, stempelAktif: 0 },
+  { id: 'CUST-0067', nama: 'YUTIANI', jumlahKartu: 10, stempelAktif: 0 },
+  { id: 'CUST-0068', nama: 'CITRA PASONA', jumlahKartu: 7, stempelAktif: 0 },
+  { id: 'CUST-0069', nama: 'MARIANI TG. SEBAUK', jumlahKartu: 15, stempelAktif: 0 }
+];
+
+var REWARD_CATALOG = [
+  { id: 'HDH-001', nama: 'Minyak Goreng 1L', total: 20, sisa: 18, status: 'Aktif', img: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=150&auto=format&fit=crop&q=80' },
+  { id: 'HDH-002', nama: 'Gula Pasir 1kg', total: 25, sisa: 22, status: 'Aktif', img: 'https://images.unsplash.com/photo-1581441363689-1f3c3c414635?w=150&auto=format&fit=crop&q=80' },
+  { id: 'HDH-003', nama: 'Gratis Biaya Admin 3x', total: 50, sisa: 48, status: 'Aktif', img: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=150&auto=format&fit=crop&q=80' }
+];
+
+var appState = {
+  isAdmin: false,
+  activeCustomer: null,
+  adminCurrentPage: 1,
+  adminPageLimit: 9,
+  adminFilterKeyword: '',
+  realtimeLogs: [],
+  activeCameraStream: null,
+  scannerAnimationId: null,
+  currentCameraFacing: 'environment',
+  isFlashOn: false,
+  isProcessingScan: false
+};
+
+window.onload = function() {
+  renderAdminCustomerCards();
+  renderRewardCatalogTable();
+  callBackend('getInitialConfig', {}, function(res) {
+    if (res && res.success && res.hadiah && res.hadiah.length > 0) {
+      // Data terkonfirmasi dari backend
+    }
+  });
+};
+
+function playStampChime() {
+  try {
+    var synth = new Tone.Synth().toDestination();
+    synth.triggerAttackRelease("C5", "8n");
+  } catch(e) {}
+}
+
+function playCelebrationFanfare() {
+  try {
+    var synth = new Tone.PolySynth(Tone.Synth).toDestination();
+    var now = Tone.now();
+    synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "4n", now);
+    synth.triggerAttackRelease(["G4", "B4", "D5", "G5"], "2n", now + 0.3);
+  } catch(e) {}
+}
+
+function showToast(msg, type) {
+  var toast = document.getElementById('appToast');
+  var toastMsg = document.getElementById('appToastMessage');
+  var toastIcon = document.getElementById('appToastIcon');
+  if (!toast) return;
+
+  toast.className = 'toast-box-notification ' + (type || 'info');
+  toastMsg.innerText = msg;
+  
+  if (type === 'success') toastIcon.className = 'fa-solid fa-circle-check';
+  else if (type === 'error') toastIcon.className = 'fa-solid fa-triangle-exclamation';
+  else toastIcon.className = 'fa-solid fa-circle-info';
+
+  toast.style.display = 'flex';
+  setTimeout(function() {
+    toast.style.display = 'none';
+  }, 3500);
+}
+
+// Handler Pembuka Mode Kasir (Global & Safe-Guarded)
+function toggleMode() {
+  if (appState.isAdmin) {
+    exitAdminMode();
+  } else {
+    var modal = document.getElementById('modalAuthKasir');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+    var pinInput = document.getElementById('inputAdminPin');
+    if (pinInput) {
+      pinInput.value = '';
+      setTimeout(function() {
+        pinInput.focus();
+      }, 100);
+    }
+  }
+}
+
+// Pastikan fungsi toggleMode selalu terpasang di window global
+window.toggleMode = toggleMode;
+
+function closeAuthModal() {
+  var modal = document.getElementById('modalAuthKasir');
+  if (modal) modal.style.display = 'none';
+}
+window.closeAuthModal = closeAuthModal;
+
+function submitAdminLogin() {
+  var pinInput = document.getElementById('inputAdminPin');
+  var pin = pinInput ? pinInput.value.trim() : '';
+  
+  if (pin === '000') {
+    appState.isAdmin = true;
+    closeAuthModal();
+    document.getElementById('viewCustomer').style.display = 'none';
+    document.getElementById('viewAdmin').style.display = 'block';
+    document.getElementById('btnModeText').innerText = 'Mode Pelanggan';
+    showToast('Berhasil masuk Mode Kasir', 'success');
+    renderAdminCustomerCards();
+  } else {
+    showToast('PIN salah! Masukkan PIN: 000', 'error');
+  }
+}
+window.submitAdminLogin = submitAdminLogin;
+
+function exitAdminMode() {
+  appState.isAdmin = false;
+  document.getElementById('viewAdmin').style.display = 'none';
+  document.getElementById('viewCustomer').style.display = 'block';
+  document.getElementById('btnModeText').innerText = 'Mode Kasir';
+  showToast('Kembali ke Mode Pelanggan', 'info');
+}
+window.exitAdminMode = exitAdminMode;
+
+// Bind event listener tambahan saat DOM siap agar tombol selalu merespon klik
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('btnToggleMode');
+  if (btn) {
+    btn.onclick = toggleMode;
+  }
+});
+
+function promptGantiShift() {
+  showToast('Shift diperbarui: Kasir 1 tetap aktif.', 'info');
+}
+
+function switchAdminTab(tabIndex) {
+  for (var i = 1; i <= 4; i++) {
+    var btn = document.getElementById('tabBtn' + i);
+    var content = document.getElementById('adminTabContent' + i);
+    if (btn) btn.classList.remove('active');
+    if (content) content.style.display = 'none';
+  }
+  var activeBtn = document.getElementById('tabBtn' + tabIndex);
+  var activeContent = document.getElementById('adminTabContent' + tabIndex);
+  if (activeBtn) activeBtn.classList.add('active');
+  if (activeContent) activeContent.style.display = 'block';
+
+  if (tabIndex === 2) renderRewardCatalogTable();
+  if (tabIndex === 4) loadRealtimeStampLogs();
+}
+
+function renderRewardCatalogTable() {
+  var tbody = document.getElementById('tableBodyHadiah');
+  if (!tbody) return;
+  var html = '';
+  REWARD_CATALOG.forEach(function(item) {
+    html += '<tr>' +
+      '<td>' + item.id + '</td>' +
+      '<td>' +
+        '<div style="display:flex; align-items:center; gap:10px;">' +
+          '<img src="' + item.img + '" class="reward-img-thumbnail" alt="' + item.nama + '" onerror="this.src=\'https://placehold.co/80x80/e2e8f0/1e293b?text=Hadiah\'">' +
+          '<span style="font-weight:700;">' + item.nama + '</span>' +
+        '</div>' +
+      '</td>' +
+      '<td>' + item.total + ' Unit</td>' +
+      '<td><strong style="color:var(--primary);">' + item.sisa + ' Unit</strong></td>' +
+      '<td><span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:800; padding:2px 8px; border-radius:9999px;">' + item.status + '</span></td>' +
+      '<td>' +
+        '<div style="display:flex; gap:6px; align-items:center;">' +
+          '<button class="btn btn-outline btn-sm" style="padding:0 8px; border-radius:6px;" onclick="openModalEditHadiah(\'' + item.id + '\')" title="Edit Hadiah">' +
+            '<i class="fa-solid fa-pen-to-square"></i>' +
+          '</button>' +
+          '<button class="btn btn-red btn-sm" style="padding:0 8px; border-radius:6px;" onclick="promptDeleteHadiah(\'' + item.id + '\')" title="Hapus Hadiah">' +
+            '<i class="fa-solid fa-trash"></i>' +
+          '</button>' +
+        '</div>' +
+      '</td>' +
+    '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function recordRealtimeStampLog(action, cust, detail) {
+  var now = new Date();
+  var hours = ('0' + now.getHours()).slice(-2);
+  var mins = ('0' + now.getMinutes()).slice(-2);
+  var secs = ('0' + now.getSeconds()).slice(-2);
+  var timeStr = hours + ':' + mins + ':' + secs;
+
+  var newLog = {
+    waktu: timeStr,
+    idCust: cust.id,
+    nama: cust.nama,
+    aksi: action,
+    stempel: (cust.stempelAktif || 0) + ' / 20',
+    petugas: 'Kasir 1',
+    keterangan: detail || 'Transaksi Stempel'
+  };
+
+  appState.realtimeLogs.unshift(newLog);
+  renderRealtimeStampTable();
+}
+
+function renderRealtimeStampTable() {
+  var tbody = document.getElementById('tableBodyWaktuStempel');
+  if (!tbody) return;
+  if (appState.realtimeLogs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">Belum ada aktivitas stempel real-time hari ini.</td></tr>';
+    return;
+  }
+  var html = '';
+  appState.realtimeLogs.slice(0, 30).forEach(function(log) {
+    html += '<tr>' +
+      '<td><span style="font-family:monospace; font-weight:800; color:#2563eb;">' + log.waktu + '</span></td>' +
+      '<td>' + log.idCust + '</td>' +
+      '<td><strong>' + log.nama + '</strong></td>' +
+      '<td><span style="font-weight:800; color:' + (log.aksi === '+1' ? '#15803d' : '#dc2626') + '">' + log.aksi + '</span></td>' +
+      '<td>' + log.stempel + '</td>' +
+      '<td>' + log.petugas + '</td>' +
+      '<td><span style="font-size:11px; color:var(--text-muted);">' + log.keterangan + '</span></td>' +
+    '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function loadRealtimeStampLogs() {
+  callBackend('getRiwayatStempel', { page: 1, limit: 20 }, function(res) {
+    if (res && res.success && res.data && res.data.length > 0) {
+      appState.realtimeLogs = res.data.map(function(r) {
+        return {
+          waktu: r.waktu.split(' ')[1] || r.waktu,
+          idCust: r.idPelanggan,
+          nama: r.namaPelanggan,
+          aksi: r.aksi,
+          stempel: r.stempelSekarang + ' / 20',
+          petugas: r.namaPetugas,
+          keterangan: r.keterangan
+        };
+      });
+      renderRealtimeStampTable();
+    } else {
+      renderRealtimeStampTable();
+    }
+  });
+}
+
+function searchCustomerByName() {
+  var query = document.getElementById('customerSearchInput').value.trim().toLowerCase();
+  if (!query) {
+    showToast('Masukkan nama Anda terlebih dahulu', 'error');
+    return;
+  }
+
+  var found = MASTER_PELANGGAN_LIST.find(function(c) {
+    return c.nama.toLowerCase() === query || c.id.toLowerCase() === query;
+  }) || MASTER_PELANGGAN_LIST.find(function(c) {
+    return c.nama.toLowerCase().indexOf(query) !== -1;
+  });
+
+  if (found) {
+    renderCustomerPlanner(found);
+    showToast('Profil ditemukan: ' + found.nama, 'success');
+  } else {
+    callBackend('getPelangganByNama', { nama: query }, function(res) {
+      if (res && res.success && res.pelanggan) {
+        renderCustomerPlanner(res.pelanggan);
+        showToast('Profil ditemukan: ' + res.pelanggan.nama, 'success');
+      } else {
+        showToast('Nama "' + query + '" tidak ditemukan.', 'error');
+      }
+    });
+  }
+}
+
+function renderCustomerPlanner(c) {
+  document.getElementById('customerEmptyState').style.display = 'none';
+  document.getElementById('customerCardSection').style.display = 'block';
+
+  document.getElementById('custProfileNama').innerText = c.nama;
+  document.getElementById('custProfileId').innerText = c.id;
+  
+  var rawKartu = (c.jumlahKartu !== undefined && c.jumlahKartu !== null) ? c.jumlahKartu : 0;
+  document.getElementById('custProfileKartu').innerText = rawKartu + ' Kartu';
+  document.getElementById('custProfileKupon').innerText = rawKartu + ' Kupon Selesai';
+
+  var stempel = c.stempelAktif || 0;
+  document.getElementById('custBadgeProgress').innerText = 'Progres: ' + stempel + ' dari 20 Kotak Lengkap';
+  document.getElementById('custStampsRatioText').innerText = stempel + ' / 20 Terstempel';
+
+  var grid = document.getElementById('customerStampsGrid');
+  grid.innerHTML = '';
+  for (var i = 1; i <= 20; i++) {
+    var isFilled = i <= stempel;
+    var isSpecial = i === 20;
+    var box = document.createElement('div');
+    box.className = 'stamp-box-slot' + (isFilled ? ' active' : '') + (isSpecial ? ' special-reward' : '');
+    
+    var iconHtml = isSpecial 
+      ? '<i class="fa-solid fa-trophy"></i>' 
+      : '<i class="fa-solid ' + (isFilled ? 'fa-check' : 'fa-circle-dot') + '"></i>';
+
+    box.innerHTML = '<span class="stamp-number-label">#' + ('0' + i).slice(-2) + '</span>' +
+                    '<div class="stamp-icon-circle">' + iconHtml + '</div>';
+    grid.appendChild(box);
+  }
+
+  var m1 = document.getElementById('milestoneStep1');
+  var m2 = document.getElementById('milestoneStep2');
+  var m3 = document.getElementById('milestoneStep3');
+  var m4 = document.getElementById('milestoneStep4');
+  if (m1) m1.className = 'milestone-step-card' + (stempel >= 5 ? ' reached' : '');
+  if (m2) m2.className = 'milestone-step-card' + (stempel >= 10 ? ' reached' : '');
+  if (m3) m3.className = 'milestone-step-card' + (stempel >= 15 ? ' reached' : '');
+  if (m4) m4.className = 'milestone-step-card' + (stempel >= 20 ? ' reached' : '');
+
+  var totalTiket = Math.floor(rawKartu / 5);
+  var sisaMenujuTiket = rawKartu % 5;
+  var persenRaffle = (sisaMenujuTiket / 5) * 100;
+
+  document.getElementById('custProfileTiketCount').innerText = totalTiket + ' Tiket Resmi';
+  document.getElementById('raffleNextProgressText').innerText = sisaMenujuTiket + ' / 5 Kartu menuju tiket berikutnya';
+  document.getElementById('raffleBarFill').style.width = persenRaffle + '%';
+
+  var badgesContainer = document.getElementById('customerRaffleBadges');
+  badgesContainer.innerHTML = '';
+  if (totalTiket > 0) {
+    for (var t = 1; t <= totalTiket; t++) {
+      var tktBadge = document.createElement('div');
+      tktBadge.className = 'golden-raffle-badge';
+      tktBadge.innerHTML = '<i class="fa-solid fa-ticket"></i> UND-' + ('0000' + t).slice(-4);
+      badgesContainer.appendChild(tktBadge);
+    }
+  } else {
+    badgesContainer.innerHTML = '<span style="font-size:11px; color:#b45309; font-style:italic;">Belum memiliki tiket undian. Kumpulkan 5 kartu untuk tiket pertamamu!</span>';
+  }
+
+  var qrHolder = document.getElementById('customerQrContainer');
+  if (qrHolder) {
+    qrHolder.innerHTML = '';
+    try {
+      new QRCode(qrHolder, {
+        text: c.nama + '|' + c.id,
+        width: 130,
+        height: 130,
+        colorDark: "#1d4d80",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {}
+  }
+}
+
+function downloadCustomerQrImage() {
+  var qrHolder = document.getElementById('customerQrContainer');
+  var img = qrHolder ? qrHolder.querySelector('img') : null;
+  if (!img || !img.src) {
+    showToast('QR Code belum siap untuk diunduh', 'error');
+    return;
+  }
+  var link = document.createElement('a');
+  link.href = img.src;
+  link.download = 'QR_ID_BRILink.png';
+  link.click();
+  showToast('QR Code berhasil diunduh!', 'success');
+}
+
+function renderAdminCustomerCards() {
+  var container = document.getElementById('adminCustomersCardsContainer');
+  if (!container) return;
+
+  var filtered = MASTER_PELANGGAN_LIST.filter(function(item) {
+    if (!appState.adminFilterKeyword) return true;
+    var kw = appState.adminFilterKeyword.toLowerCase();
+    return item.nama.toLowerCase().indexOf(kw) !== -1 || item.id.toLowerCase().indexOf(kw) !== -1;
+  });
+
+  var total = filtered.length;
+  var totalPages = Math.ceil(total / appState.adminPageLimit) || 1;
+  if (appState.adminCurrentPage > totalPages) appState.adminCurrentPage = 1;
+
+  var start = (appState.adminCurrentPage - 1) * appState.adminPageLimit;
+  var paged = filtered.slice(start, start + appState.adminPageLimit);
+
+  document.getElementById('paginationInfoLabel').innerText = 'Hal ' + appState.adminCurrentPage + ' / ' + totalPages + ' (' + total + ' Pelanggan)';
+
+  container.innerHTML = '';
+  if (paged.length === 0) {
+    container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:30px; color:var(--text-muted);">Tidak ada nama pelanggan yang cocok.</div>';
+    return;
+  }
+
+  paged.forEach(function(cust) {
+    var card = document.createElement('div');
+    card.className = 'cust-card-single';
+    card.style.cursor = 'pointer';
+    
+    // Klik bodi kartu langsung membuka meja stempel pelanggan
+    card.onclick = function() {
+      selectCustomerForStamping(cust.nama);
+    };
+
+    var stempel = cust.stempelAktif || 0;
+    var kartu = (cust.jumlahKartu !== undefined && cust.jumlahKartu !== null) ? cust.jumlahKartu : 0;
+
+    var dotsHtml = '';
+    for (var d = 1; d <= 20; d++) {
+      var isDfilled = d <= stempel;
+      var isDspecial = d === 20;
+      dotsHtml += '<div class="mini-dot-slot' + (isDfilled ? ' filled' : '') + (isDspecial ? ' special-20' : '') + '"></div>';
+    }
+
+    card.innerHTML = 
+      '<div class="cust-card-top">' +
+        '<div class="cashier-cust-avatar" style="width:34px; height:34px; font-size:13px;">' + cust.nama.charAt(0) + '</div>' +
+        '<div style="flex:1; overflow:hidden;">' +
+          '<div class="cust-card-name" style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="' + cust.nama + '">' + cust.nama + '</div>' +
+          '<div class="cust-card-sub">' +
+            '<span>' + cust.id + '</span>' +
+            '<span class="badge-card-count"><i class="fa-solid fa-id-card"></i> ' + kartu + ' Kartu</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="mini-stamp-progress-box">' +
+        '<div class="mini-progress-meta">' +
+          '<span><i class="fa-solid fa-stamp"></i> ' + stempel + ' / 20 Stempel</span>' +
+          '<span style="color:var(--text-muted);">' + kartu + ' Kupon Selesai</span>' +
+        '</div>' +
+        '<div class="mini-dots-row">' + dotsHtml + '</div>' +
+      '</div>' +
+      '<button class="btn btn-blue btn-md" style="width:100%; border-radius:10px;" onclick="event.stopPropagation(); selectCustomerForStamping(\'' + cust.nama + '\')">' +
+        '<i class="fa-solid fa-stamp"></i> Cap +1' +
+      '</button>';
+
+    container.appendChild(card);
+  });
+}
+
+function changeAdminPage(delta) {
+  appState.adminCurrentPage += delta;
+  if (appState.adminCurrentPage < 1) appState.adminCurrentPage = 1;
+  renderAdminCustomerCards();
+}
+
+function handleAdminSearchInput(e) {
+  var val = e.target.value.trim().toLowerCase();
+  appState.adminFilterKeyword = val;
+  renderAdminCustomerCards();
+
+  var suggestionsBox = document.getElementById('adminSearchSuggestions');
+  if (!val || val.length < 2) {
+    suggestionsBox.style.display = 'none';
+    return;
+  }
+
+  var matches = MASTER_PELANGGAN_LIST.filter(function(p) {
+    return p.nama.toLowerCase().indexOf(val) === 0 || p.nama.toLowerCase().indexOf(val) !== -1;
+  }).slice(0, 5);
+
+  if (matches.length > 0) {
+    var html = '';
+    matches.forEach(function(m) {
+      html += '<div class="suggestion-item" onclick="selectCustomerForStamping(\'' + m.nama + '\'); document.getElementById(\'adminSearchSuggestions\').style.display=\'none\';">' +
+        '<span><i class="fa-solid fa-user"></i> ' + m.nama + '</span>' +
+        '<span class="badge-card-count">' + m.jumlahKartu + ' Kartu</span>' +
+      '</div>';
+    });
+    suggestionsBox.innerHTML = html;
+    suggestionsBox.style.display = 'block';
+  } else {
+    suggestionsBox.style.display = 'none';
+  }
+}
+
+function triggerFastSelectCustomer() {
+  var kw = document.getElementById('adminSearchKeyword').value.trim().toLowerCase();
+  if (!kw) return;
+
+  var match = MASTER_PELANGGAN_LIST.find(function(p) {
+    return p.nama.toLowerCase().indexOf(kw) === 0;
+  }) || MASTER_PELANGGAN_LIST.find(function(p) {
+    return p.nama.toLowerCase().indexOf(kw) !== -1;
+  });
+
+  if (match) {
+    selectCustomerForStamping(match.nama);
+    document.getElementById('adminSearchSuggestions').style.display = 'none';
+  } else {
+    showToast('Pelanggan "' + kw + '" tidak ditemukan.', 'error');
+  }
+}
+
+function selectCustomerForStamping(custNama) {
+  var cust = MASTER_PELANGGAN_LIST.find(function(c) {
+    return c.nama.toLowerCase() === custNama.toLowerCase();
+  });
+  if (!cust) return;
+
+  appState.activeCustomer = cust;
+  var desk = document.getElementById('cashierActiveDeskSection');
+  desk.style.display = 'block';
+
+  document.getElementById('deskCustName').innerText = cust.nama;
+  document.getElementById('deskCustId').innerText = cust.id;
+  document.getElementById('deskCustAvatarLetter').innerText = cust.nama.charAt(0);
+  document.getElementById('deskCustCardsBadge').innerText = (cust.jumlahKartu || 0) + ' Kartu';
+
+  renderDeskStampGrid();
+  desk.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDeskStamp() {
+  document.getElementById('cashierActiveDeskSection').style.display = 'none';
+  appState.activeCustomer = null;
+}
+
+function renderDeskStampGrid() {
+  var cust = appState.activeCustomer;
+  if (!cust) return;
+
+  var stempel = cust.stempelAktif || 0;
+  document.getElementById('deskStampCountText').innerText = stempel + ' / 20 Terstempel';
+
+  var grid = document.getElementById('deskStampsGrid20');
+  grid.innerHTML = '';
+
+  for (var i = 1; i <= 20; i++) {
+    var isFilled = i <= stempel;
+    var isSpecial = i === 20;
+    var slot = document.createElement('div');
+    slot.className = 'stamp-box-slot' + (isFilled ? ' active' : '') + (isSpecial ? ' special-reward' : '');
+    slot.style.cursor = 'pointer';
+    
+    var iconHtml = isSpecial 
+      ? '<i class="fa-solid fa-trophy"></i>' 
+      : '<i class="fa-solid ' + (isFilled ? 'fa-check' : 'fa-circle-dot') + '"></i>';
+
+    slot.innerHTML = '<span class="stamp-number-label">#' + ('0' + i).slice(-2) + '</span>' +
+                     '<div class="stamp-icon-circle">' + iconHtml + '</div>';
+
+    // Kotak stempel dapat diceklis langsung secara interaktif
+    (function(slotNum) {
+      slot.onclick = function() {
+        onDeskSlotClick(slotNum);
+      };
+    })(i);
+
+    grid.appendChild(slot);
+  }
+}
+
+function onDeskSlotClick(slotNum) {
+  var cust = appState.activeCustomer;
+  if (!cust) return;
+  var current = cust.stempelAktif || 0;
+  if (slotNum <= current) {
+    applyDeskStampChange(-1);
+  } else {
+    applyDeskStampChange(1);
+  }
+}
+
+function applyDeskStampChange(delta) {
+  var cust = appState.activeCustomer;
+  if (!cust) return;
+
+  var current = cust.stempelAktif || 0;
+  var next = current + delta;
+  if (next < 0) {
+    showToast('Stempel tidak boleh kurang dari 0', 'error');
+    return;
+  }
+
+  playStampChime();
+
+  var isCardFinished = false;
+  var isRaffleUnlocked = false;
+  var newRaffleNo = '';
+
+  if (next >= 20) {
+    cust.stempelAktif = 0;
+    cust.jumlahKartu = (cust.jumlahKartu || 0) + 1;
+    isCardFinished = true;
+
+    if (cust.jumlahKartu % 5 === 0) {
+      isRaffleUnlocked = true;
+      newRaffleNo = 'UND-' + ('0000' + (Math.floor(cust.jumlahKartu / 5))).slice(-4);
+    }
+  } else {
+    cust.stempelAktif = next;
+  }
+
+  document.getElementById('deskCustCardsBadge').innerText = cust.jumlahKartu + ' Kartu';
+  renderDeskStampGrid();
+  renderAdminCustomerCards();
+
+  var logKet = isRaffleUnlocked 
+    ? 'Kupon 20 Penuh! Kartu ke-' + cust.jumlahKartu + ' Selesai -> DAPAT TIKET UNDIAN: ' + newRaffleNo 
+    : (isCardFinished ? 'Kupon 20 Penuh! Jumlah kartu bertambah menjadi ' + cust.jumlahKartu : 'Stempel Kasir');
+  recordRealtimeStampLog(delta > 0 ? '+1' : '-1', cust, logKet);
+
+  if (isRaffleUnlocked) {
+    playCelebrationFanfare();
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    openModalRaffleAward(cust.nama, cust.jumlahKartu, newRaffleNo);
+  } else if (isCardFinished) {
+    playCelebrationFanfare();
+    confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    showToast('🎉 Selamat! 20 Stempel Lengkap! Kartu ' + cust.nama + ' bertambah menjadi ' + cust.jumlahKartu + ' kartu & stempel kembali 0.', 'success');
+  } else {
+    showToast('Stempel diperbarui: ' + cust.stempelAktif + ' / 20', 'success');
+  }
+
+  callBackend('updateStempel', { idOrNama: cust.id, delta: delta, namaPetugas: 'Kasir 1' }, function(res) {
+    if (res && res.success) {
+      // Sinkronisasi backend berhasil
+    }
+  });
+}
+
+function openModalRaffleAward(nama, kartuKe, noUndian) {
+  document.getElementById('modalRaffleSubText').innerText = nama + ' telah menyelesaikan kartu ke-' + kartuKe + ' (Kelipatan 5 Kartu)!';
+  document.getElementById('modalRaffleNumberText').innerText = noUndian;
+  document.getElementById('modalRaffleAward').style.display = 'flex';
+}
+
+function closeRaffleModal() {
+  document.getElementById('modalRaffleAward').style.display = 'none';
+}
+
+function openQrScannerModal() {
+  appState.isProcessingScan = false;
+  document.getElementById('modalQrScanner').style.display = 'flex';
+
+  setTimeout(function() {
+    startLiveCameraScanner();
+  }, 150);
+}
+
+function closeQrScannerModal() {
+  stopLiveCameraScanner();
+  document.getElementById('modalQrScanner').style.display = 'none';
+  appState.isProcessingScan = false;
+}
+
+function triggerNativeCameraDirectly() {
+  var fileInput = document.getElementById('nativeQrFileInput');
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.click();
+  }
+}
+
+async function startLiveCameraScanner() {
+  stopLiveCameraScanner();
+  var video = document.getElementById('scannerLiveVideo');
+  if (!video) return;
+
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('webkit-playsinline', 'true');
+  video.setAttribute('muted', 'true');
+
+  var facing = appState.currentCameraFacing || 'environment';
+  var stream = null;
+
+  var strategies = [
+    { audio: false, video: { facingMode: { ideal: facing } } },
+    { audio: false, video: { facingMode: facing } },
+    null,
+    { audio: false, video: true }
+  ];
+
+  for (var i = 0; i < strategies.length; i++) {
+    var constraint = strategies[i];
+    try {
+      if (constraint === null) {
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          var devs = await navigator.mediaDevices.enumerateDevices();
+          var vDevs = devs.filter(function(d) { return d.kind === 'videoinput'; });
+          var chosen = vDevs.find(function(d) {
+            var l = (d.label || '').toLowerCase();
+            return l.indexOf('back') !== -1 || l.indexOf('rear') !== -1 || l.indexOf('belakang') !== -1 || l.indexOf('environment') !== -1;
+          }) || (vDevs.length > 1 ? vDevs[vDevs.length - 1] : vDevs[0]);
+          if (chosen && chosen.deviceId) {
+            constraint = { audio: false, video: { deviceId: { exact: chosen.deviceId } } };
+          }
+        }
+      }
+      if (constraint) {
+        stream = await navigator.mediaDevices.getUserMedia(constraint);
+        if (stream && stream.getVideoTracks().length > 0) break;
+      }
+    } catch (e) {
+      console.warn("Strategi kamera " + i + " gagal, mencoba opsi lain...", e);
+    }
+  }
+
+  if (!stream) {
+    showToast('Kamera perangkat tidak merespon. Gunakan tombol rana/foto.', 'error');
+    return;
+  }
+
+  appState.activeCameraStream = stream;
+  video.srcObject = stream;
+
+  video.onloadedmetadata = function() {
+    video.play().then(function() {
+      startScanningFrames(video);
+    }).catch(function(err) {
+      console.warn("Play error:", err);
+      startScanningFrames(video);
+    });
+  };
+
+  try {
+    await video.play();
+    startScanningFrames(video);
+  } catch (errPlay) {}
+}
+
+function startScanningFrames(video) {
+  var barcodeDetector = null;
+  if ('BarcodeDetector' in window) {
+    try {
+      barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+    } catch(e) {}
+  }
+
+  var canvas = document.getElementById('scannerHiddenCanvas');
+  var ctx = canvas ? canvas.getContext('2d', { willReadFrequently: true }) : null;
+
+  async function scanLoop() {
+    if (!appState.activeCameraStream || appState.isProcessingScan) return;
+
+    if (video && video.readyState >= video.HAVE_CURRENT_DATA) {
+      if (barcodeDetector) {
+        try {
+          var barcodes = await barcodeDetector.detect(video);
+          if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+            onQrCodeSuccess(barcodes[0].rawValue);
+            return;
+          }
+        } catch(e) {}
+      }
+
+      if (typeof jsQR !== 'undefined' && canvas && ctx) {
+        try {
+          var vW = video.videoWidth || 640;
+          var vH = video.videoHeight || 480;
+          canvas.width = Math.min(640, vW);
+          canvas.height = Math.floor(canvas.width * (vH / vW));
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var qrResult = jsQR(imgData.data, canvas.width, canvas.height, {
+            inversionAttempts: 'dontInvert'
+          });
+          if (qrResult && qrResult.data) {
+            onQrCodeSuccess(qrResult.data);
+            return;
+          }
+        } catch(e) {}
+      }
+    }
+
+    appState.scannerAnimationId = requestAnimationFrame(scanLoop);
+  }
+
+  appState.scannerAnimationId = requestAnimationFrame(scanLoop);
+}
+
+function restartLiveCamera() {
+  appState.currentCameraFacing = appState.currentCameraFacing === 'environment' ? 'user' : 'environment';
+  stopLiveCameraScanner();
+  setTimeout(function() {
+    startLiveCameraScanner();
+  }, 200);
+}
+
+function toggleFlashlight() {
+  if (appState.activeCameraStream) {
+    var track = appState.activeCameraStream.getVideoTracks()[0];
+    if (track && track.applyConstraints) {
+      appState.isFlashOn = !appState.isFlashOn;
+      track.applyConstraints({
+        advanced: [{ torch: appState.isFlashOn }]
+      }).then(function() {
+        document.getElementById('btnToggleTorch').style.color = appState.isFlashOn ? '#f59e0b' : '#ffffff';
+        showToast(appState.isFlashOn ? 'Senter Aktif' : 'Senter Mati', 'info');
+      }).catch(function() {
+        showToast('Lampu senter tidak didukung di perangkat ini', 'info');
+      });
+      return;
+    }
+  }
+  showToast('Kamera belum aktif', 'info');
+}
+
+function stopLiveCameraScanner() {
+  if (appState.scannerAnimationId) {
+    cancelAnimationFrame(appState.scannerAnimationId);
+    appState.scannerAnimationId = null;
+  }
+  if (appState.activeCameraStream) {
+    appState.activeCameraStream.getTracks().forEach(function(track) {
+      track.stop();
+    });
+    appState.activeCameraStream = null;
+  }
+  var video = document.getElementById('scannerLiveVideo');
+  if (video) {
+    video.srcObject = null;
+  }
+}
+
+function onQrCodeSuccess(decodedText) {
+  if (appState.isProcessingScan) return;
+  appState.isProcessingScan = true;
+
+  stopLiveCameraScanner();
+  closeQrScannerModal();
+
+  var parts = decodedText.split('|');
+  var custNama = (parts[0] || '').trim();
+  var custId = (parts[1] || '').trim();
+
+  var cust = MASTER_PELANGGAN_LIST.find(function(c) {
+    if (custId && c.id.toLowerCase() === custId.toLowerCase()) return true;
+    if (custNama && c.nama.toLowerCase() === custNama.toLowerCase()) return true;
+    return false;
+  }) || MASTER_PELANGGAN_LIST.find(function(c) {
+    return c.nama.toLowerCase().indexOf(custNama.toLowerCase()) !== -1;
+  });
+
+  if (cust) {
+    selectCustomerForStamping(cust.nama);
+    setTimeout(function() {
+      applyDeskStampChange(1);
+      showToast('✅ Berhasil Scan QR! Stempel otomatis bertambah +1 untuk ' + cust.nama, 'success');
+      appState.isProcessingScan = false;
+    }, 200);
+  } else {
+    callBackend('getPelangganByNama', { nama: custNama || decodedText }, function(res) {
+      appState.isProcessingScan = false;
+      if (res && res.success && res.pelanggan) {
+        var exist = MASTER_PELANGGAN_LIST.find(function(p) { return p.id === res.pelanggan.id; });
+        if (!exist) {
+          MASTER_PELANGGAN_LIST.unshift(res.pelanggan);
+        } else {
+          exist.stempelAktif = res.pelanggan.stempelAktif;
+          exist.jumlahKartu = res.pelanggan.jumlahKartu;
+        }
+        selectCustomerForStamping(res.pelanggan.nama);
+        setTimeout(function() {
+          applyDeskStampChange(1);
+          showToast('✅ Berhasil Scan QR! Stempel otomatis bertambah +1 untuk ' + res.pelanggan.nama, 'success');
+        }, 200);
+      } else {
+        showToast('Pelanggan dari QR tidak ditemukan.', 'error');
+      }
+    });
+  }
+}
+
+function handleNativeQrCapture(event) {
+  var file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  showToast('Membaca QR code pelanggan...', 'info');
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var code = (typeof jsQR !== 'undefined') ? jsQR(imgData.data, canvas.width, canvas.height) : null;
+      if (code && code.data) {
+        onQrCodeSuccess(code.data);
+      } else {
+        showToast('Tidak ada QR yang terbaca. Pastikan foto QR fokus & terang.', 'error');
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function openModalTambahPelanggan() {
+  document.getElementById('modalTambahPelanggan').style.display = 'flex';
+  var input = document.getElementById('regCustNama');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+}
+
+function closeModalTambahPelanggan() {
+  document.getElementById('modalTambahPelanggan').style.display = 'none';
+}
+
+function submitRegisterCustomer() {
+  var nama = document.getElementById('regCustNama').value.trim();
+  if (!nama) {
+    showToast('Nama pelanggan wajib diisi', 'error');
+    return;
+  }
+
+  var newId = 'CUST-' + ('0000' + (MASTER_PELANGGAN_LIST.length + 1)).slice(-4);
+  var newCust = {
+    id: newId,
+    nama: nama,
+    jumlahKartu: 0,
+    stempelAktif: 0
+  };
+
+  MASTER_PELANGGAN_LIST.unshift(newCust);
+  closeModalTambahPelanggan();
+  renderAdminCustomerCards();
+  selectCustomerForStamping(nama);
+  showToast('Pelanggan ' + nama + ' berhasil didaftarkan dengan 0 Kartu!', 'success');
+
+  callBackend('registerPelanggan', { nama: nama, jumlahKartu: 0, namaPetugas: 'Kasir 1' }, function(res) {
+    if (res && res.message) {
+      showToast(res.message, res.success ? 'success' : 'error');
+    }
+  });
+}
+
+var itemHadiahTargetHapus = null;
+
+function handleRewardImageUpload(event) {
+  var file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var tempImg = new Image();
+    tempImg.onload = function() {
+      var canvas = document.createElement('canvas');
+      var maxDim = 320;
+      var scale = Math.min(maxDim / tempImg.width, maxDim / tempImg.height, 1);
+      canvas.width = Math.round(tempImg.width * scale);
+      canvas.height = Math.round(tempImg.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+      
+      var base64Data = canvas.toDataURL('image/jpeg', 0.85);
+      document.getElementById('formHadiahImg').value = base64Data;
+      
+      var preview = document.getElementById('formHadiahImgPreview');
+      preview.src = base64Data;
+      preview.style.display = 'block';
+    };
+    tempImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function openModalTambahHadiah() {
+  document.getElementById('modalFormHadiahTitle').innerHTML = '<i class="fa-solid fa-plus"></i> Tambah Hadiah';
+  document.getElementById('formHadiahId').value = '';
+  document.getElementById('formHadiahNama').value = '';
+  document.getElementById('formHadiahImg').value = '';
+  var preview = document.getElementById('formHadiahImgPreview');
+  preview.src = '';
+  preview.style.display = 'none';
+  var fileInput = document.getElementById('formHadiahFileInput');
+  if (fileInput) fileInput.value = '';
+  document.getElementById('formHadiahTotal').value = '10';
+  document.getElementById('formHadiahSisa').value = '10';
+  document.getElementById('formHadiahStatus').value = 'Aktif';
+  document.getElementById('modalFormHadiah').style.display = 'flex';
+}
+
+function openModalEditHadiah(id) {
+  var item = REWARD_CATALOG.find(function(r) { return r.id === id; });
+  if (!item) return;
+
+  document.getElementById('modalFormHadiahTitle').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Edit Hadiah';
+  document.getElementById('formHadiahId').value = item.id;
+  document.getElementById('formHadiahNama').value = item.nama;
+  document.getElementById('formHadiahImg').value = item.img || '';
+  
+  var preview = document.getElementById('formHadiahImgPreview');
+  if (item.img) {
+    preview.src = item.img;
+    preview.style.display = 'block';
+  } else {
+    preview.src = '';
+    preview.style.display = 'none';
+  }
+  
+  var fileInput = document.getElementById('formHadiahFileInput');
+  if (fileInput) fileInput.value = '';
+
+  document.getElementById('formHadiahTotal').value = item.total;
+  document.getElementById('formHadiahSisa').value = item.sisa;
+  document.getElementById('formHadiahStatus').value = item.status || 'Aktif';
+  document.getElementById('modalFormHadiah').style.display = 'flex';
+}
+
+function closeModalFormHadiah() {
+  document.getElementById('modalFormHadiah').style.display = 'none';
+}
+
+function submitFormHadiah() {
+  var id = document.getElementById('formHadiahId').value.trim();
+  var nama = document.getElementById('formHadiahNama').value.trim();
+  var img = document.getElementById('formHadiahImg').value.trim();
+  var total = parseInt(document.getElementById('formHadiahTotal').value, 10) || 0;
+  var sisa = parseInt(document.getElementById('formHadiahSisa').value, 10) || 0;
+  var status = document.getElementById('formHadiahStatus').value;
+
+  if (!nama) {
+    showToast('Nama hadiah tidak boleh kosong', 'error');
+    return;
+  }
+
+  if (!img) {
+    img = 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=150&auto=format&fit=crop&q=80';
+  }
+
+  if (id) {
+    var item = REWARD_CATALOG.find(function(r) { return r.id === id; });
+    if (item) {
+      item.nama = nama;
+      item.img = img;
+      item.total = total;
+      item.sisa = sisa;
+      item.status = status;
+    }
+    showToast('Hadiah ' + nama + ' berhasil diperbarui!', 'success');
+  } else {
+    var newId = 'HDH-' + ('000' + (REWARD_CATALOG.length + 1)).slice(-3);
+    REWARD_CATALOG.push({
+      id: newId,
+      nama: nama,
+      img: img,
+      total: total,
+      sisa: sisa,
+      status: status
+    });
+    showToast('Hadiah ' + nama + ' berhasil ditambahkan!', 'success');
+  }
+
+  closeModalFormHadiah();
+  renderRewardCatalogTable();
+
+  callBackend('saveHadiah', { id: id, nama: nama, totalStok: total, sisaStok: sisa, status: status }, function(res) {
+    if (res && res.message) {
+      showToast(res.message, res.success ? 'success' : 'error');
+    }
+  });
+}
+
+function promptDeleteHadiah(id) {
+  var item = REWARD_CATALOG.find(function(r) { return r.id === id; });
+  if (!item) return;
+  itemHadiahTargetHapus = item;
+
+  document.getElementById('confirmHapusHadiahText').innerText = 'Apakah Anda yakin ingin menghapus "' + item.nama + '" (' + item.id + ') dari katalog?';
+  document.getElementById('modalConfirmHapusHadiah').style.display = 'flex';
+}
+
+function closeModalConfirmHapus() {
+  document.getElementById('modalConfirmHapusHadiah').style.display = 'none';
+  itemHadiahTargetHapus = null;
+}
+
+function executeDeleteHadiah() {
+  if (!itemHadiahTargetHapus) return;
+  var targetId = itemHadiahTargetHapus.id;
+  var targetNama = itemHadiahTargetHapus.nama;
+
+  REWARD_CATALOG = REWARD_CATALOG.filter(function(r) {
+    return r.id !== targetId;
+  });
+
+  closeModalConfirmHapus();
+  renderRewardCatalogTable();
+  showToast('Hadiah ' + targetNama + ' berhasil dihapus!', 'success');
+
+  callBackend('deleteHadiah', { id: targetId }, function(res) {
+    if (res && res.message) showToast(res.message, res.success ? 'success' : 'error');
+  });
+}
